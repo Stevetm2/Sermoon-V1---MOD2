@@ -152,7 +152,8 @@ typedef struct block_t {
   volatile uint8_t flag;                    // Block flags (See BlockFlag enum above) - Modified by ISR and main thread!
 
   // Fields used by the motion planner to manage acceleration
-  float nominal_speed_sqr,                  // The nominal speed for this block in (mm/sec)^2
+  //sjt float nominal_speed_sqr,                  // The nominal speed for this block in (mm/sec)^2
+  float nominal_speed,                 //sjt // The nominal speed for this block in (mm/sec)^2
         entry_speed_sqr,                    // Entry speed at previous-current junction in (mm/sec)^2
         max_entry_speed_sqr,                // Maximum allowable junction entry speed in (mm/sec)^2
         millimeters,                        // The total travel of this block in mm
@@ -190,6 +191,8 @@ typedef struct block_t {
 
   // Advance extrusion
   #if ENABLED(LIN_ADVANCE)
+    uint32_t la_advance_rate;               // The rate at which steps are added whilst accelerating
+    uint8_t  la_scaling;                    // Scale ISR frequency down and step frequency up by 2 ^ la_scaling
     bool use_advance_lead;
     uint16_t advance_speed,                 // STEP timer value for extruder speed offset ISR
              max_adv_steps,                 // max. advance steps to get cruising speed pressure (not always nominal_speed!)
@@ -346,6 +349,7 @@ class Planner {
 
     static uint32_t max_acceleration_steps_per_s2[XYZE_N]; // (steps/s^2) Derived from mm_per_s2
     static float steps_to_mm[XYZE_N];           // Millimeters per step
+    static float mm_per_step[XYZE_N]; //sjt          // Millimeters per step
 
     #if HAS_JUNCTION_DEVIATION
       static float junction_deviation_mm;       // (mm) M205 J
@@ -418,16 +422,18 @@ class Planner {
      * Speed of previous path line segment
      */
     static xyze_float_t previous_speed;
+    static float previous_nominal_speed;
 
     /**
      * Nominal speed of previous path line segment (mm/s)^2
      */
-    static float previous_nominal_speed_sqr;
+    //static float previous_nominal_speed_sqr;
 
     /**
      * Limit where 64bit math is necessary for acceleration calculation
      */
     static uint32_t cutoff_long;
+    static uint32_t acceleration_long_cutoff;//sjt
 
     #if ENABLED(ENABLE_LEVELING_FADE_HEIGHT)
       static float last_fade_z;
@@ -793,7 +799,7 @@ class Planner {
      */
     static void set_position_mm(const float &rx, const float &ry, const float &rz, const float &e);
     FORCE_INLINE static void set_position_mm(const xyze_pos_t &cart) { set_position_mm(cart.x, cart.y, cart.z, cart.e); }
-    static void set_e_position_mm(const float &e);
+    static void set_e_position_mm(const float e);
 
     /**
      * Set the planner.position and individual stepper positions.
@@ -940,7 +946,7 @@ class Planner {
       }
     #endif
 
-    static void calculate_trapezoid_for_block(block_t* const block, const float &entry_factor, const float &exit_factor);
+    static void calculate_trapezoid_for_block(block_t* const block, const float entry_factor, const float &exit_factor);
 
     static void reverse_pass_kernel(block_t* const current, const block_t * const next);
     static void forward_pass_kernel(const block_t * const previous, block_t* const current, uint8_t block_index);
