@@ -195,6 +195,15 @@
 #define __TERN(T,V...)      ___TERN(_CAT(_NO,T),V)  // Prepend '_NO' to get '_NOT_0' or '_NOT_1'
 #define ___TERN(P,V...)     THIRD(P,V)              // If first argument has a comma, A. Else B.
 
+#if 1// sjt
+#define _OPTITEM(A...)      A,
+#define OPTITEM(O,A...)     TERN_(O,DEFER4(_OPTITEM)(A))
+#define _OPTARG(A...)       , A
+#define OPTARG(O,A...)      TERN_(O,DEFER4(_OPTARG)(A))
+#define _OPTCODE(A)         A;
+#define OPTCODE(O,A)        TERN_(O,DEFER4(_OPTCODE)(A))
+#endif// sjt
+
 #define ANY(V...)          !DISABLED(V)
 #define NONE(V...)          DISABLED(V)
 #define ALL(V...)           ENABLED(V)
